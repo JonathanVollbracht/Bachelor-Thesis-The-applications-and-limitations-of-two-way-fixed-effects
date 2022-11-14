@@ -4,7 +4,7 @@
 ################################
 ######Estimate Beta#############
 
-est.beta <- function(X,Y){
+est.beta <- function(X,Y){ ###standard OLS estimator
   beta_est <- c()
   beta_est = solve(t(X)%*%X)%*%t(X)%*%Y
   return(beta_est)
@@ -45,7 +45,7 @@ est.r2 <- function(X,Y,beta_hat){
 ###############################################
 ###### Standard deviation and T_statistic######
 
-standard_deviation <- function(X,Y,beta_hat){
+standard_deviation <- function(X,Y,beta_hat){ ###estimates the variance matrix for beta
   n = dim(X)[1]
   k = dim(X)[2]
   
@@ -58,7 +58,7 @@ standard_deviation <- function(X,Y,beta_hat){
   return((solve(t(X)%*%X)) * sigma)
 }
 
-test_t_stat <- function(X,Y,beta_hat,hypothesis,to_test){
+test_t_stat <- function(X,Y,beta_hat,hypothesis,to_test){  #####Assumes N > 1000
   sd_beta = standard_deviation(X,Y,beta_hat)
   test_stat = (beta_hat[to_test] - hypothesis)/sd_beta[to_test,to_test]
   significance = 0
@@ -66,7 +66,7 @@ test_t_stat <- function(X,Y,beta_hat,hypothesis,to_test){
   t_stat_0.01 = 2.326
   t_stat_0.001 = 3.291
   
-  if(abs(test_stat) >= t_stat_0.05){
+  if(abs(test_stat) >= t_stat_0.05){ 
     significance = 1
     if(abs(test_stat >= t_stat_0.01)){
       significance = 2
@@ -109,15 +109,15 @@ for(i in 1:N){
       }
       
       
-      if(X[((i-1)*T +t),(T-1+(g-1))] == 1 && sum(X[((i-1)*T +t),1:(T-1)]) == 0){ 
+      if(X[((i-1)*T +t),(T-1+(g-1))] == 1 && sum(X[((i-1)*T +t),1:(T-1)]) == 0){ ###border case t = 1
         N_gt[g,1] = N_gt[g,1] + 1 
       }
     }
-    if(sum(X[((i-1)*T +t),1:(T+G-2)]) == 0){
+    if(sum(X[((i-1)*T +t),1:(T+G-2)]) == 0){ ###border case t = 1, g = 1
       N_gt[1,1] = N_gt[1,1] + 1
     }
     for(t2 in 1:(T-1)){
-      if(X[((i-1)*T + t),t2] == 1 && sum(X[((i-1)*T + t),T:(T+G-2)])==0){ 
+      if(X[((i-1)*T + t),t2] == 1 && sum(X[((i-1)*T + t),T:(T+G-2)])==0){ ###border case g = 1
         N_gt[1,(t2+1)] = N_gt[1,(t2+1)] + 1
       }
     }
@@ -154,13 +154,13 @@ return(LDelta_TR)
 ###################################
 #####Estimate LDelta_gt (ATE)######
 
-est.LDelta_gt <- function (X,Y,N,G,T,d){ ##### d refers to the collum which contains the treatment information
+est.LDelta_gt <- function (X,Y,N,G,T,d){
   
 LDelta_gt <- matrix(0, nrow = G, ncol = T)
 
 N_gt <- est.N_gt(X,N,G,T)
 beta_mod <- est.beta(X,Y)
-beta_mod[d] = 0
+beta_mod[d] = 0 ###used to estimate Y_igt(0)
 
 for(i in 1:N){
   for(t in 1:T){
@@ -181,7 +181,7 @@ return(LDelta_gt)
 ###############################
 ######Estimate delta_TR########
 
-est.delta_TR <- function(X,Y,N,G,T,d){
+est.delta_TR <- function(X,Y,N,G,T,d){ 
   delta_TR = 0
   N_gt <- est.N_gt(X,N,G,T)
   N1 <- est.N1(X,d)
@@ -208,7 +208,7 @@ for (i in 1:N){
         D_gt[g,t] = D_gt[g,t] + 1/N_gt[g,t] * X[(i-1)*T + t,d]
       }
     }
-    if(X[(i-1)*T + t,d] > 0 && sum(X[(i-1)*T + t,T:(T+G-2)]) == 0){
+    if(X[(i-1)*T + t,d] > 0 && sum(X[(i-1)*T + t,T:(T+G-2)]) == 0){ #####border case group 1
       D_gt[1,t] = D_gt[1,t] + 1/N_gt[1,t] * X[(i-1)*T + t,d]
     }
   }
@@ -225,8 +225,8 @@ est.weights_v1 <- function(X,Y,N,G,T,d){
   D_gt = est.D_gt(X,Y,N,G,T,d)
   N_gt = est.N_gt(X,N,G,T)
   N1 = est.N1(X,d)
-  lambda <- c(0, beta_hat[1:(T-1)])          ##include or exclude period one and group one?
-  gamma <- c(0, beta_hat[(T-1):(T+G-2)])
+  lambda <- c(0, beta_hat[1:(T-1)])          #####vector containing the time fixed effects estimates
+  gamma <- c(0, beta_hat[(T-1):(T+G-2)])     #####vector containing the group fixed effects estimates
 
   alpha = mean(D_gt) - mean(lambda) - mean(gamma) 
 
@@ -260,7 +260,7 @@ est.weights_v1 <- function(X,Y,N,G,T,d){
 ###############################################
 #####estimate Two-Way weights version 2########
 
-est.weights_v2 <- function(X,Y,N,G,T,d){  ####### Note that for this method to be accurate N_gt[g,t]/N_gt[g,t-1] may not vary accross g over time
+est.weights_v2 <- function(X,Y,N,G,T,d){  ####### Note that for this method to be accurate N_gt[g,t]/N_gt[g,t-1] may not vary across g over time
   epsilon <- matrix(0, nrow = G, ncol = T)
   D_gt <- est.D_gt(X,Y,N,G,T,d)
   N_gt <- est.N_gt(X,N,G,T)
@@ -316,6 +316,9 @@ est.weights_v2 <- function(X,Y,N,G,T,d){  ####### Note that for this method to b
 }
 
 
+###################################################
+####### Control for sum(w_gt | D_gt = 1) = 1 ######
+
 check.sum_weights <- function (X,Y,N,G,T,d,weights) {  ###### The sole purpose of this function is to be able to check, whether the computed w_gt[g,t] sum up to 1 once scaled properly.
   D_gt <- est.D_gt(X,Y,N,G,T,d)
   N1 <- est.N1(X,d)
@@ -334,7 +337,7 @@ check.sum_weights <- function (X,Y,N,G,T,d,weights) {  ###### The sole purpose o
 ##########################################################
 ###### Robustness to heterogenous treatment effects ######
 
-est.sigma_delta <- function(X,Y,N,G,T,d){
+est.sigma_delta <- function(X,Y,N,G,T,d){ #####Estimates the standard deviation of the ATEs from the ATT
   sigma_delta = 0
   D_gt <- est.D_gt(X,Y,N,G,T,d)
   N_gt <- est.N_gt(X,N,G,T)
@@ -354,7 +357,7 @@ est.sigma_delta <- function(X,Y,N,G,T,d){
 }
 
 
-est.sigma_weights <- function(X,Y,N,G,T,d,v_weights = 1){
+est.sigma_weights <- function(X,Y,N,G,T,d,v_weights = 1){ ######Estimates the standard deviation of the weights
   sigma_weights = 0
   D_gt <- est.D_gt(X,Y,N,G,T,d)
   N_gt <- est.N_gt(X,N,G,T)
@@ -458,9 +461,9 @@ inference <- function(X,Y,N,G,T,d,v_weights = 1){
   
   
   if(sigma_weights > 0){
-    mim_comp_sigma_weights = (abs(beta_fe)/sigma_weights)
+    mim_comp_sigma_weights = abs(beta_fe)/sigma_weights #####First lower bound for sigma_fe
     
-    if(beta_fe != 0 && sorted_by_weights[count_treated_gt_cells,1] < 0){
+    if(beta_fe != 0 && sorted_by_weights[count_treated_gt_cells,1] < 0){ #####Second lower bound for sigma_fe
       s = 1
       min2_comp_sigma_weights = 0
       for(i in 1:count_treated_gt_cells){
@@ -472,7 +475,8 @@ inference <- function(X,Y,N,G,T,d,v_weights = 1){
       results <- data.frame(min_comp_sigma_weights, min2_comp_sigma_weights,assumption_7)
       return(results)
     } else {
-      return(min_comp_sigma_weights,assumption_7)
+      results <- data.frame(min_comp_sigma_weights, assumption_7)
+      return(results)
     }
   } else {
     return(assumption_7)
@@ -483,7 +487,7 @@ inference <- function(X,Y,N,G,T,d,v_weights = 1){
 ####################################################
 ######Estimate Beta_fe for both variants of w ######
 
-est.beta_fe <- function(X,Y,N,G,T,d,v_weights = 1){ 
+est.beta_fe <- function(X,Y,N,G,T,d,v_weights = 1){ ##### estimates the decomposition result
   D_gt <- est.D_gt(X,Y,N,G,T,d)
   N_gt <- est.N_gt(X,N,G,T)
   N1 = est.N1(X,d)
@@ -540,25 +544,26 @@ est.DID_M <- function(X,Y,N,G,T,d){
 
   
   N_ddt <- matrix(0, nrow = 4, ncol = (T-1))
-  #  N_ddt ##### = sum(N_gt[g,t]) conditional on g:D_gt = d, D_gt-1 = d' 
+  
+  #  N_ddt[case,t] = sum(N_gt[g,t]) conditional on g:D_gt = d, D_gt-1 = d' 
   #  counts switchers and nonswitchers in period t
   
   N_S = 0 ###Total number of switchers 
   
   for(g in 1:G){
     for(t in 1:(T-1)){
-      if(D_gt[g,(t+1)] == 0 && D_gt[g,t] == 0){
+      if(D_gt[g,(t+1)] == 0 && D_gt[g,t] == 0){ #### case 1: d = d' = 0
         N_ddt[1,t] = N_ddt[1,t] + N_gt[g,(t+1)]
       }
-      if(D_gt[g,(t+1)] == 0 && D_gt[g,t] > 0){
+      if(D_gt[g,(t+1)] == 0 && D_gt[g,t] > 0){ #### case 2: d = 0, d' = 1, leaver
         N_ddt[2,t] = N_ddt[2,t] + N_gt[g,(t+1)]
         N_S = N_S + N_gt[g,(t+1)]
       }
-      if(D_gt[g,(t+1)] > 0 && D_gt[g,t] == 0){
+      if(D_gt[g,(t+1)] > 0 && D_gt[g,t] == 0){ #### case 3: d = 1, d' = 0, joiner
         N_ddt[3,t] = N_ddt[3,t] + N_gt[g,(t+1)]
         N_S = N_S + N_gt[g,(t+1)]
       }
-      if(D_gt[g,(t+1)] > 0 && D_gt[g,t] > 0){
+      if(D_gt[g,(t+1)] > 0 && D_gt[g,t] > 0){ #### case 4: d = d' = 1
         N_ddt[4,t] = N_ddt[4,t] + N_gt[g,(t+1)]
       }
     }
@@ -587,14 +592,14 @@ est.DID_M <- function(X,Y,N,G,T,d){
     }
   }
   
-  for(t in 1:(T-1)){
-    if(N_ddt[3,t] != 0 && N_ddt[1,t] != 0){
+  for(t in 1:(T-1)){ 
+    if(N_ddt[3,t] != 0 && N_ddt[1,t] != 0){ #### estimates DID_[Plus,t]
       DID_plus[t] = Y_gt_sum[3,t] - Y_gt_sum[1,t]
     } else {
       DID_plus[t] = 0
     }
     
-    if(N_ddt[4,t] != 0 && N_ddt[2,t] != 0){
+    if(N_ddt[4,t] != 0 && N_ddt[2,t] != 0){ #### estimates DID_[minus,t]
       DID_minus[t] = Y_gt_sum[4,t] - Y_gt_sum[2,t]
     } else {
       DID_minus[t] = 0
@@ -619,7 +624,7 @@ est.DID_M <- function(X,Y,N,G,T,d){
 ##################################
 
 
-est.DID_M_PL <- function(X,Y,N,G,T,d){
+est.DID_M_PL <- function(X,Y,N,G,T,d){ ###funtions similar to DID_M, changes are commented
   D_gt <- est.D_gt(X,Y,N,G,T,d)
   N_gt <- est.N_gt(X,N,G,T)
   Y_gt <- matrix(0, nrow = G, ncol = T)
@@ -640,29 +645,29 @@ est.DID_M_PL <- function(X,Y,N,G,T,d){
     }
   }
   
-  N_dddt <- matrix(0,nrow = 6, ncol = T-2)
+  N_dddt <- matrix(0,nrow = 6, ncol = T-2) ##### 6 cases,  d = d'' = 0, d' = 1 and d = d'' = 1, d' = 0 are left out
   
   N_S = 0 ###Total number of switchers 
   
   for(g in 1:G){
     for(t in 1:(T-2)){
-      if(D_gt[g,(t+2)] == 0 && D_gt[g,(t+1)] == 0 && D_gt[g,t] == 0){
+      if(D_gt[g,(t+2)] == 0 && D_gt[g,(t+1)] == 0 && D_gt[g,t] == 0){ #### case 1: d = d' = d'' = 0
         N_dddt[1,t] = N_dddt[1,t] + N_gt[g,(t+1)]
       }
-      if(D_gt[g,t+2] == 0 && D_gt[g,(t+1)] == 0 && D_gt[g,t] > 0){
+      if(D_gt[g,t+2] == 0 && D_gt[g,(t+1)] == 0 && D_gt[g,t] > 0){ #### case 2: d = d' = 0, d'' = 1 
         N_dddt[2,t] = N_dddt[2,t] + N_gt[g,(t+1)]
       }
-      if(D_gt[g,t+2] == 0 && D_gt[g,(t+1)] > 0 && D_gt[g,t] > 0){
+      if(D_gt[g,t+2] == 0 && D_gt[g,(t+1)] > 0 && D_gt[g,t] > 0){ #### case 3: d = 0, d' = d'' = 1 (period d leaver)
         N_dddt[3,t] = N_dddt[3,t] + N_gt[g,(t+1)]
         N_S = N_S + N_gt[g,(t+1)]
       }
-      if(D_gt[g,t+2] > 0 && D_gt[g,(t+1)] > 0 && D_gt[g,t] > 0){
+      if(D_gt[g,t+2] > 0 && D_gt[g,(t+1)] > 0 && D_gt[g,t] > 0){ #### case 4: d = d' = d'' = 1 
         N_dddt[4,t] = N_dddt[4,t] + N_gt[g,(t+1)]
       }
-      if(D_gt[g,t+2] > 0 && D_gt[g,(t+1)] > 0 && D_gt[g,t] == 0){
+      if(D_gt[g,t+2] > 0 && D_gt[g,(t+1)] > 0 && D_gt[g,t] == 0){ #### case 5: d = d' = 1, d'' = 0
         N_dddt[5,t] = N_dddt[5,t] + N_gt[g,(t+1)]
       }
-      if(D_gt[g,t+2] > 0 && D_gt[g,(t+1)] == 0 && D_gt[g,t] == 0){
+      if(D_gt[g,t+2] > 0 && D_gt[g,(t+1)] == 0 && D_gt[g,t] == 0){ #### case 6: d = 1, d' = d'' = 0 (period d joiner)
         N_dddt[6,t] = N_dddt[6,t] + N_gt[g,(t+1)]
         N_S = N_S + N_gt[g,(t+1)]
       }
@@ -678,7 +683,7 @@ est.DID_M_PL <- function(X,Y,N,G,T,d){
   }
   for(t in 3:T){
     for(g in 1:G){
-      if(N_dddt[6,t-2] != 0 && N_dddt[1,t-2] != 0){
+      if(N_dddt[6,t-2] != 0 && N_dddt[1,t-2] != 0){ #### Estimates DID_[Plus,t-1] for period t joiners 
         if(D_gt[g,t] > 0 && D_gt[g,(t-1)] == 0 && D_gt[g,t-2] == 0){
           DID_plus[t-2] = DID_plus[t-2] + (N_gt[g,t]/N_dddt[6,t-2])*(Y_gt[g,t-1]-Y_gt[g,t-2])
         }
@@ -689,7 +694,7 @@ est.DID_M_PL <- function(X,Y,N,G,T,d){
         DID_plus[t-2] = 0
       }
       
-      if(N_dddt[4,t-2] != 0 && N_dddt[3,t-2] != 0){
+      if(N_dddt[4,t-2] != 0 && N_dddt[3,t-2] != 0){ #### Estimates DID_[minus,t-1] for period t leavers
         if(D_gt[g,t] > 0 && D_gt[g,(t-1)] > 0 && D_gt[g,t-2] > 0){
           DID_minus[t-2] = DID_minus[t-2] - (N_gt[g,t]/N_dddt[4,t-2])*(Y_gt[g,t-1]-Y_gt[g,t-2])
         }
